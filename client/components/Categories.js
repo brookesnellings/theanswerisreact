@@ -9,6 +9,7 @@ const Categories = props => {
         key={category.id}
         category={category}
         selectQuestion={props.selectQuestion}
+        answeredQuestions={props.answeredQuestions}
       />
     );
   });

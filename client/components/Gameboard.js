@@ -8,10 +8,15 @@ const Gameboard = props => {
       data-testid='gameboard'
       id={props.currentQuestion.question ? 'question' : 'gameboard'}
     >
-      <Categories
-        categories={props.categories}
-        selectQuestion={props.selectQuestion}
-      />
+      {props.currentQuestion.question ? (
+        props.currentQuestion.question
+      ) : (
+        <Categories
+          categories={props.categories}
+          selectQuestion={props.selectQuestion}
+          answeredQuestions={props.answeredQuestions}
+        />
+      )}
       {/* was a question clicked?  */}
       {/* Yes? Show clue */}
       {/* No? Show Categories */}

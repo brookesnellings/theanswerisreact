@@ -5,7 +5,13 @@ import Clue from './Clue.js';
 const Category = props => {
   var clues = props.category.clues.map(clue => {
     return (
-      <Clue key={clue.id} clue={clue} selectQuestion={props.selectQuestion} />
+      <Clue
+        key={clue.id}
+        clue={clue}
+        selectQuestion={props.selectQuestion}
+        // Refactor to reduce time complexity from O(n) to O(1) using objects
+        answered={props.answeredQuestions.includes(clue.id)}
+      />
     );
   });
   return (
