@@ -9,7 +9,7 @@ const Clue = props => {
     <div className='clueValue' />
   ) : (
       <div onClick={() => props.selectQuestion(props.clue)} className='clueValue'>
-        {props.clue.value}
+        {props.value}
       </div>
     );
   return clue;

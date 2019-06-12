@@ -10,7 +10,7 @@ export default class App extends Component {
     super(props);
 
     this.state = {
-      results: categories,
+      results: [],
       currentQuestion: {},
       answeredQuestions: [],
       score: 0,
@@ -22,20 +22,33 @@ export default class App extends Component {
   componentDidMount() {
     // Getting data from an external API
     //1. A query to /api/categories to get a set of categories
-    //2. A set of queries afterwards to /api/category at each category id to get clues for that category
+    //2. A set of queries afterwards to /api/category at
+    var context = this;
+    var categoryList = {};
     axios.get('http://jservice.io/api/categories?count=5')
       .then(function (response) {
         // handle success
-        console.log(response);
         let promises = response.data.map(category => {
+          categoryList[category.id] = category.title;
           return axios.get(`http://jservice.io/api/clues?category=${category.id}`)
         })
-        return Promise.all(promises);
+        return axios.all(promises);
       }).then(function (res) {
-        console.log(res);
+        var arr = []
+        res.map((category, i) => {
+          arr[i] = {
+            clues: category.data,
+            title: category.data[0].category.title,
+            id: category.data[0].category.id
+          };
+        })
+        console.log(arr)
+        context.setState({
+          results: arr
+        })
+
       })
       .catch(function (error) {
-        // handle error
         console.log(error);
       })
   }
@@ -107,3 +120,4 @@ export default class App extends Component {
     );
   }
 }
+
