@@ -5,13 +5,22 @@ import Scoreboard from './Scoreboard';
 import Response from './Response.js';
 import axios from 'axios';
 import { connect } from 'react-redux';
+import NewGame from './NewGame.js';
+import Timer from './Timer.js'
 
 class App extends Component {
   constructor(props) {
     super(props);
 
+    this.state = {
+      timer: -1,
+      selectedPlayer: 0,
+      alreadyAnswered: []
+    }
+
     this.handleClick = this.handleClick.bind(this);
     this.recordResponse = this.recordResponse.bind(this);
+    this.handleNumberOfPlayers = this.handleNumberOfPlayers.bind(this);
   }
   componentDidMount() {
     console.log(this.props)
@@ -33,10 +42,6 @@ class App extends Component {
             id: category.data[0].category.id
           };
         })
-        console.log(arr)
-        context.setState({
-          results: arr
-        })
         context.props.updateResults(arr);
 
       })
@@ -45,10 +50,47 @@ class App extends Component {
       })
   }
 
-  handleClick(clue) {
-    this.props.selectClue(clue);
-    console.log(this.props)
+  handleNumberOfPlayers(number) {
+    this.props.numberOfPlayers(number);
   }
+
+  handleClick(clue) {
+    this.setState(() => {
+      return { timer: 5 }
+    })
+    this.props.selectClue(clue);
+    var clear = setInterval(() => {
+      if (this.state.timer === 0) {
+        clearInterval(clear);
+        this.props.questionAnswered();
+        this.setState({ alreadyAnswered: [] })
+      }
+      console.log(this.state.timer);
+      this.setState((prev) => {
+        return { timer: prev.timer - 1 }
+      })
+    }, 1000);
+    this.listenForBuzzes(clear);
+  }
+
+  listenForBuzzes(clear) {
+    var context = this;
+    var players = this.props.fromRedux.numberOfPlayers;
+    var keys = ['q', 'f', 'j', 'p'];
+    window.addEventListener('keydown', function buzzIn(e) {
+      var indexOfPressed = keys.indexOf(e.key)
+      console.log(e.key)
+      if (keys.includes(e.key) && (players - 1) >= indexOfPressed && !context.state.alreadyAnswered.includes(e.key)) {
+        context.state.alreadyAnswered.push(e.key)
+        window.removeEventListener('keydown', buzzIn);
+        clearInterval(clear);
+        context.setState({
+          selectedPlayer: indexOfPressed + 1
+        })
+      }
+    })
+  }
+
 
   recordResponse(e) {
     if (e.key === 'Enter') {
@@ -60,32 +102,65 @@ class App extends Component {
 
   submitResponse(response) {
     if (response.toLowerCase() === this.props.fromRedux.currentQuestion.answer.toLowerCase()) {
-      this.props.correctAnswer();
+      this.props.correctAnswer(this.state.selectedPlayer);
+      this.setState({
+        selectedPlayer: 0,
+        timer: -1,
+        alreadyAnswered: []
+      })
+      this.props.questionAnswered();
     } else {
-      this.props.wrongAnswer();
+      this.props.wrongAnswer(this.state.selectedPlayer);
+      this.setState({
+        selectedPlayer: 0,
+        timer: 5
+      })
+      var clear = setInterval(() => {
+        if (this.state.timer === 0) {
+          clearInterval(clear);
+          this.props.questionAnswered();
+        }
+        console.log(this.state.timer);
+        this.setState((prev) => {
+          return { timer: prev.timer - 1 }
+        }
+        )
+      }, 1000);
+      this.listenForBuzzes(clear);
     }
-    this.props.questionAnswered();
   }
 
   render() {
     const { results, currentQuestion, score, answeredQuestions } = this.props.fromRedux;
-    const response = Object.keys(currentQuestion).length ? (
+    const response = Object.keys(currentQuestion).length && this.state.selectedPlayer ? (
       <div>
         <Response recordResponse={this.recordResponse} />
       </div>
     ) : (
         <div />
       );
-    return (
+
+    var displayGame = this.props.fromRedux.numberOfPlayers ? (
       <div id={'app'}>
+        <Timer timer={this.state.timer} />
         <Gameboard
           categories={results}
           currentQuestion={currentQuestion}
           selectQuestion={this.handleClick}
           answeredQuestions={answeredQuestions}
         />
-        <Scoreboard score={score} />
+        {/* Display SB based on number of players and label them */}
+        <Scoreboard score={score} players={this.props.fromRedux.numberOfPlayers} selectedPlayer={this.state.selectedPlayer} />
         {response}
+      </div>
+    ) : (
+        <div>
+          <NewGame handleNumberOfPlayers={this.handleNumberOfPlayers} />
+        </div>
+      )
+    return (
+      <div>
+        {displayGame}
       </div>
 
     );
@@ -103,9 +178,10 @@ const mapDispatchToProps = (dispatch) => {
     updateResults: (results) => dispatch({ type: 'UPDATE_RESULTS', results }),
     selectClue: (clue) => dispatch({ type: "SELECT_CLUE", clue }),
     recordResponse: (response) => dispatch({ type: "RECORD_RESPONSE", response }),
-    correctAnswer: () => dispatch({ type: "CORRECT_ANSWER" }),
-    wrongAnswer: () => dispatch({ type: "WRONG_ANSWER" }),
-    questionAnswered: () => dispatch({ type: "QUESTION_ANSWERED" })
+    correctAnswer: (player) => dispatch({ type: "CORRECT_ANSWER", player }),
+    wrongAnswer: (player) => dispatch({ type: "WRONG_ANSWER", player }),
+    questionAnswered: () => dispatch({ type: "QUESTION_ANSWERED" }),
+    numberOfPlayers: (number) => dispatch({ type: "NUMBER_OF_PLAYERS", number })
   }
 }
 export default connect(mapStateToProps, mapDispatchToProps)(App)
