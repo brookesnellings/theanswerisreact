@@ -4,8 +4,9 @@ import Gameboard from './Gameboard.js';
 import Scoreboard from './Scoreboard';
 import Response from './Response.js';
 import axios from 'axios';
+import { connect } from 'react-redux';
 
-export default class App extends Component {
+class App extends Component {
   constructor(props) {
     super(props);
 
@@ -20,9 +21,7 @@ export default class App extends Component {
     this.recordResponse = this.recordResponse.bind(this);
   }
   componentDidMount() {
-    // Getting data from an external API
-    //1. A query to /api/categories to get a set of categories
-    //2. A set of queries afterwards to /api/category at
+    console.log(this.props)
     var context = this;
     var categoryList = {};
     axios.get('http://jservice.io/api/categories?count=5')
@@ -46,6 +45,7 @@ export default class App extends Component {
         context.setState({
           results: arr
         })
+        context.props.updateResults(arr);
 
       })
       .catch(function (error) {
@@ -120,4 +120,16 @@ export default class App extends Component {
     );
   }
 }
+const mapStateToProps = (state) => {
+  console.log(state);
+  return {
+    fromRedux: state
+  }
+}
 
+const mapDispatchToProps = (dispatch) => {
+  return {
+    updateResults: (results) => dispatch({ type: 'UPDATE_RESULTS', results })
+  }
+}
+export default connect(mapStateToProps, mapDispatchToProps)(App)
