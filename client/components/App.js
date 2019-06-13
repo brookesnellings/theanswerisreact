@@ -10,13 +10,6 @@ class App extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      results: [],
-      currentQuestion: {},
-      answeredQuestions: [],
-      score: 0,
-      userResponse: ''
-    };
     this.handleClick = this.handleClick.bind(this);
     this.recordResponse = this.recordResponse.bind(this);
   }
@@ -26,7 +19,6 @@ class App extends Component {
     var categoryList = {};
     axios.get('http://jservice.io/api/categories?count=5')
       .then(function (response) {
-        // handle success
         let promises = response.data.map(category => {
           categoryList[category.id] = category.title;
           return axios.get(`http://jservice.io/api/clues?category=${category.id}`)
@@ -54,50 +46,29 @@ class App extends Component {
   }
 
   handleClick(clue) {
-    this.setState({ currentQuestion: clue });
+    this.props.selectClue(clue);
+    console.log(this.props)
   }
 
   recordResponse(e) {
     if (e.key === 'Enter') {
-      this.submitResponse(this.state.userResponse);
+      this.submitResponse(this.props.fromRedux.userResponse);
     } else {
-      this.setState({
-        userResponse: e.target.value
-      });
+      this.props.recordResponse(e.target.value);
     }
   }
 
   submitResponse(response) {
-    if (response.toLowerCase() === this.state.currentQuestion.answer.toLowerCase()) {
-      this.setState(state => {
-        return {
-          score: state.score + state.currentQuestion.value
-        };
-      });
+    if (response.toLowerCase() === this.props.fromRedux.currentQuestion.answer.toLowerCase()) {
+      this.props.correctAnswer();
     } else {
-      this.setState(state => {
-        return {
-          score: state.score - state.currentQuestion.value
-        };
-      });
-
+      this.props.wrongAnswer();
     }
-    this.setState(state => {
-      return {
-        currentQuestion: {},
-        answeredQuestions: [
-          ...state.answeredQuestions,
-          state.currentQuestion.id
-        ]
-      };
-    });
-    // this function should fire when the user fills the response and hits 'enter'
-    // Is the user response correct?
-    // yes/no? What should happen?
+    this.props.questionAnswered();
   }
 
   render() {
-    const { results, currentQuestion, score, answeredQuestions } = this.state;
+    const { results, currentQuestion, score, answeredQuestions } = this.props.fromRedux;
     const response = Object.keys(currentQuestion).length ? (
       <div>
         <Response recordResponse={this.recordResponse} />
@@ -129,7 +100,12 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    updateResults: (results) => dispatch({ type: 'UPDATE_RESULTS', results })
+    updateResults: (results) => dispatch({ type: 'UPDATE_RESULTS', results }),
+    selectClue: (clue) => dispatch({ type: "SELECT_CLUE", clue }),
+    recordResponse: (response) => dispatch({ type: "RECORD_RESPONSE", response }),
+    correctAnswer: () => dispatch({ type: "CORRECT_ANSWER" }),
+    wrongAnswer: () => dispatch({ type: "WRONG_ANSWER" }),
+    questionAnswered: () => dispatch({ type: "QUESTION_ANSWERED" })
   }
 }
 export default connect(mapStateToProps, mapDispatchToProps)(App)
